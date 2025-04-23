@@ -1,0 +1,123 @@
+.data
+# Matriz A
+A:
+    .word 1,2,3
+    .word 4,5,6
+    .word 7,8,9
+
+# Matriz B
+B: 
+    .word 9,8,7
+    .word 6,5,4
+    .word 3,2,1
+
+# Matriz C
+C: 
+    .word 0,0,0
+    .word 0,0,0
+    .word 0,0,0
+    
+space: .asciz " "
+newline: .asciz "\n"
+
+.text
+.globl _start
+
+_start:
+    li t0,0                  # i=0
+    li t3,3                  # tamaño 3x3
+    li t4,4                  # tamaño de word (4 bytes)
+
+loop_i:
+    bge t0,t3,end_loop_i     # si i>=3,terminar
+    li t1,0                  # j=0
+
+loop_j:
+    bge t1,t3,end_loop_j     # si j>=3,terminar loop_j
+    li t2,0                  # k=0
+    li t5,0                  # acumulador=0
+
+loop_k:
+    bge t2,t3,end_loop_k     # si k>=3,terminar loop_k
+
+    # Calculo de A[i][k] = A+(i*3+k)*4
+    mul t6,t0,t3
+    add t6,t6,t2
+    slli t6,t6,2
+    la a0,A
+    add a0,a0,t6
+    lw a1,0(a0)
+
+    # Calculo de B[k][j] = B+(k*3+j)*4
+    mul t6,t2,t3
+    add t6,t6,t1
+    slli t6,t6,2
+    la a0,B
+    add a0,a0,t6
+    lw a2,0(a0)
+
+    # Multiplicacion y acumulacion
+    mul a3,a1,a2            # a3=A[i][k]*B[k][j]
+    add t5,t5,a3            # acumulador+=a3
+    addi t2,t2,1            # k++
+    j loop_k
+
+end_loop_k:
+    # Guardar en C[i][j] = C+(i*3+j)*4
+    mul t6,t0,t3
+    add t6,t6,t1
+    slli t6,t6,2
+    la a0,C
+    add a0,a0,t6
+    sw t5,0(a0)
+    addi t1,t1,1            # j++
+    j loop_j
+
+end_loop_j:
+    addi t0,t0,1            # i++
+    j loop_i
+
+end_loop_i:
+    # Imprimir matriz C
+    li t0,0                 # reset i=0
+
+print_loop_i:
+    bge t0,t3,end_print
+    li t1,0                 # j=0
+
+print_loop_j:
+    bge t1,t3,end_print_row
+    
+    # Calcular direccion de C[i][j]
+    mul t6,t0,t3
+    add t6,t6,t1
+    slli t6,t6,2
+    la a0,C
+    add a0,a0,t6
+    lw a0,0(a0)             # Cargar valor
+    
+    # Imprimir numero
+    li a7,1
+    ecall
+    
+    # Imprimir espacio
+    la a0,space
+    li a7,4
+    ecall
+    
+    addi t1,t1,1            # j++
+    j print_loop_j
+
+end_print_row:
+    # Imprimir nueva linea al final de cada fila
+    la a0,newline
+    li a7,4
+    ecall
+    
+    addi t0,t0,1            # i++
+    j print_loop_i
+
+end_print:
+    # Imprimir
+    li a7,10 
+    ecall
